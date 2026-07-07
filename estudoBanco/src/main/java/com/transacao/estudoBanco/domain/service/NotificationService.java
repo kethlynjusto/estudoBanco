@@ -1,11 +1,10 @@
-package com.transacao.estudoBanco.domain.Services;
+package com.transacao.estudoBanco.domain.service;
 
 import com.transacao.estudoBanco.domain.dto.NotificationDTO;
 import com.transacao.estudoBanco.domain.dto.NotificationResponseDTO;
 import com.transacao.estudoBanco.domain.user.User;
 import lombok.Builder;
 import lombok.extern.log4j.Log4j2;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

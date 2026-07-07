@@ -1,12 +1,14 @@
-package com.transacao.estudoBanco.domain.Services;
+package com.transacao.estudoBanco.domain.service;
 
 import com.transacao.estudoBanco.domain.dto.TransactionDTO;
 import com.transacao.estudoBanco.domain.dto.TransferResponseDTO;
+import com.transacao.estudoBanco.domain.exception.UnauthorizedTransactionException;
 import com.transacao.estudoBanco.domain.transaction.Transaction;
 import com.transacao.estudoBanco.domain.user.User;
-import com.transacao.estudoBanco.domain.repositories.TransactionRepository;
+import com.transacao.estudoBanco.domain.repository.TransactionRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +20,7 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TransactionService {
 
     private final UserService userService;
@@ -28,7 +31,7 @@ public class TransactionService {
     private RestTemplate restTemplate;
 
     @Transactional
-    public void createTransaction(TransactionDTO transactionDTO) throws Exception {
+    public TransactionDTO createTransaction(TransactionDTO transactionDTO) throws Exception {
         BigDecimal value = transactionDTO.getValue();
         User sender = userService.findUserById(transactionDTO.getPayer());
         User receiver = userService.findUserById(transactionDTO.getPayee());
@@ -36,7 +39,7 @@ public class TransactionService {
         userService.validateTransaction(sender, value);
 
         if(!authorizeTransaction(sender, value)){
-            throw new Exception("Não autorizado");
+            throw new UnauthorizedTransactionException("Não autorizado");
         }
 
         Transaction newTransaction = Transaction.builder()
@@ -54,8 +57,13 @@ public class TransactionService {
         userService.saveUser(sender);
         userService.saveUser(receiver);
 
-        notificationService.sendNotification(sender, "Seu dinheiro foi enviado");
-        notificationService.sendNotification(receiver, "Você recebeu um dinheiro");
+        try{
+            notificationService.sendNotification(sender, "Seu dinheiro foi enviado");
+            notificationService.sendNotification(receiver, "Você recebeu um dinheiro");
+        } catch (Exception e){
+            log.warn("Falha ao enviar notificação: {}", e.getMessage());
+        }
+        return transactionDTO;
     }
 
     public boolean authorizeTransaction(User sender, BigDecimal value){
